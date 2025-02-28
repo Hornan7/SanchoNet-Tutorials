@@ -84,3 +84,27 @@ sudo mv sancho-node.service /etc/systemd/system
 sudo systemctl daemon-reload
 sudo systemctl enable sancho-node.service
 ```
+
+#### 7. Create your pool keys
+```bash
+mkdir keys
+cd keys
+cardano-cli conway node key-gen \
+--cold-verification-key-file cold.vkey \
+--cold-signing-key-file cold.skey \
+--operational-certificate-issue-counter-file opcert.counter
+```
+
+#### 8. Create the KES keys
+```bash
+cardano-cli conway node key-gen-KES \
+--verification-key-file kes.vkey \
+--signing-key-file kes.skey
+```
+
+#### 9. Create VRF keys
+```bash
+cardano-cli conway node key-gen-VRF \
+--verification-key-file vrf.vkey \
+--signing-key-file vrf.skey
+```
