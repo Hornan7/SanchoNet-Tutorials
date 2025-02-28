@@ -1,7 +1,8 @@
 # SanchoNet-Tutorials
 
-## Content
+## Table of Contents
 
++ [Initial Environment Configuration](#initial-environment-configuration)
 + [Sancho Wallet](#sancho-wallet)
   - [Generate a wallet from the CLI](#generate-a-wallet-from-the-cli)
   - [Generate a wallet from a mnemonic phrase](#generate-a-wallet-from-a-mnemonic-phrase)
@@ -32,6 +33,38 @@
 + [Usefull Scripts](#usefull-scripts)
 
 ## Sancho Wallet
+
+### Generate a wallet from the CLI
+
+#### 1. Create your payment key pairs
+```bash
+cardano-cli conway address key-gen \
+--verification-key-file payment.vkey \
+--signing-key-file payment.skey
+```
+
+#### 2. Create your stake key pairs
+```bash
+cardano-cli conway stake-address key-gen \
+--verification-key-file stake.vkey \
+--signing-key-file stake.skey
+```
+
+#### 3. Build your wallet address
+```bash
+cardano-cli conway address build \
+--payment-verification-key-file payment.vkey \
+--stake-verification-key-file stake.vkey \
+--out-file payment.addr
+```
+
+#### 4. Build your stake address
+```bash
+cardano-cli conway stake-address build \
+--stake-verification-key-file stake.vkey \
+--out-file stake.addr
+```
+
 ## Stake pools
 
 ### Create a block producer node
