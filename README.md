@@ -13,12 +13,12 @@ mkdir db socket
 
 #### 2. Grab the binary files of the last node version release. (Yes, because on SanchoNet, we test the latest)
 ```bash
-curl -O -J https://github.com/IntersectMBO/cardano-node/releases/download/10.1.4/cardano-node-10.1.4-linux.tar.gz
+curl -O -J https://github.com/IntersectMBO/cardano-node/releases/download/10.2.1/cardano-node-10.2.1-linux.tar.gz
 ```
 
 #### 3. Extract it and move the binaries to /usr/local/bin so it can be used globaly
 ```bash
-tar -xvf cardano-node-10.1.4-linux.tar.gz
+tar -xvf cardano-node-10.2.1-linux.tar.gz
 cd bin
 sudo mv cardano-node /usr/local/bin
 sudo mv cardano-cli /usr/local/bin
