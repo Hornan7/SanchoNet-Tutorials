@@ -108,4 +108,5 @@ sudo chmod 400 kes.skey kes.vkey
 cardano-cli conway node key-gen-VRF \
 --verification-key-file vrf.vkey \
 --signing-key-file vrf.skey
+sudo chmod 400 vrf.skey vrf.vkey
 ```
