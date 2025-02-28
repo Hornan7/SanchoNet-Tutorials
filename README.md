@@ -55,7 +55,7 @@ sudo chmod 755 startnode.sh
 
 #### 5. Create a linux service for your node
 ```bash
-echo "[Unit]
+sudo echo "[Unit]
 Description       = Cardano Node Service
 Wants             = network-online.target
 After             = network-online.target
