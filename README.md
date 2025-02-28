@@ -7,12 +7,34 @@
   - [Generate a wallet from a mnemonic phrase](#generate-a-wallet-from-a-mnemonic-phrase)
   - [Restore a wallet from a mnemonic phrase](#restore-a-wallet-from-a-mnemonic-phrase)
 + [Stake Pools](#stake-pools)
-  - [Create a block producer on SanchoNet](#create-a-block-producer-on-sanchonet)
+  - [Create a block producer node](#create-a-block-producer-node)
+  - [Create a relay node](#create-a-relay-node)
++ [Delegated Representative](#delegated-representative)
+  - [Create a DRep and register it](#create-a-drep-and-register-it)
+  - [Create a multi-signature DRep and register it](#create-a-multi-signature-drep-and-register-it)
++ [Constitutional Committee](#constitutional-committee)
+  - [Download and install Nix](#download-and-install-nix)
+  - [Install the Credential Manager tools](#install-the-credential-manager-tools)
+  - [Generate Cardano keys and Openssl certificate signing request](#generate-cardano-keys-and-openssl-certificate-signing-request)
+  - [The Head of security role and Certificate authority](#the-head-of-security-role-and-certificate-authority)
+  - [Mint the cold credential NFT](#mint-the-cold-credential-nft)
+  - [Mint the hot credential NFT](#mint-the-hot-credential-nft)
+  - [Authorize the Constitutional Committee hot credential](#authorize-the-constitutional-committee-hot-credential)
+  - [Vote on governance actions as a consortium](#vote-on-governance-actions-as-a-consortium)
++ [Build a governance action](#build-a-governance-action)
+  - [Motion of no-confidence](#motion-of-no-confidence)
+  - [Update Committee and/or threshold](#update-committee-and/or-threshold)
+  - [New Constitution or Guardrail Scripts](#new-constitution-or-guardrail-scripts)
+  - [Hard-Fork Initiation](#hard-fork-initiation)
+  - [Protocol parameter changes](#protocol-parameter-changes)
+  - [Treasury withdrawal](#treasury-withdrawal)
+  - [Info action](#info-action)
++ [Usefull Scripts](#usefull-scripts)
 
 ## Sancho Wallet
 ## Stake pools
 
-### Create a block producer on SanchoNet
+### Create a block producer node
 
 #### 1. Create a source file for your node, database and socket.
 ```bash
