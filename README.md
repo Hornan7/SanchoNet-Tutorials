@@ -82,5 +82,5 @@ sudo mv sancho-node.service /etc/systemd/system
 #### 6. Enable your Node linux service
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable cardano-node.service
+sudo systemctl enable sancho-node.service
 ```
