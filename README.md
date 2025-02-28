@@ -55,7 +55,8 @@ sudo chmod 755 startnode.sh
 
 #### 5. Create a linux service for your node
 ```bash
-sudo echo "[Unit]
+sudo cat > sancho-node.service << EOF
+[Unit]
 Description       = Cardano Node Service
 Wants             = network-online.target
 After             = network-online.target
@@ -74,7 +75,8 @@ RestartSec=5
 SyslogIdentifier=cardano-node
 
 [Install]
-WantedBy          = multi-user.target" > /etc/systemd/system/sancho-node.service
+WantedBy          = multi-user.target
+EOF
 ```
 #### 6. Enable your Node linux service
 ```bash
