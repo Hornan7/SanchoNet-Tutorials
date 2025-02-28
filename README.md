@@ -149,4 +149,5 @@ cardano-cli conway node issue-op-cert \
 --operational-certificate-issue-counter-file ~/keys/opcert.counter \
 --kes-period ${kesPeriod} \
 --out-file ~/keys/opcert.cert
+sudo chmod 400 ~/keys/opcert.cert ~/keys/kes.skey ~/keys/vrf.skey
 ```
