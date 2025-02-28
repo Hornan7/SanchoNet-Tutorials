@@ -1,4 +1,18 @@
-# SanchoNet-Tutorials
+---
+Title: SanchoNet - Geek Speak Made Fun
+Status: In progress
+Authors:
+    - Mike Hornan <mike.hornan@able-pool.io>
+Usefull links:
+    - <https://github.com/IntersectMBO/credential-manager>
+    - <https://github.com/IntersectMBO/cardano-node/releases>
+    - <https://github.com/cardano-community/guild-operators>
+    - <https://github.com/gitmachtl/cardano-signer>
+    - <https://github.com/Cardano-Atlantic-Council/Scripts>
+Created: 2025-02-28
+License: CC-BY-4.0
+---
+# SanchoNet Tutorial
 
 ## Table of Contents
 
