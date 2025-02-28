@@ -100,6 +100,7 @@ cardano-cli conway node key-gen \
 cardano-cli conway node key-gen-KES \
 --verification-key-file kes.vkey \
 --signing-key-file kes.skey
+sudo chmod 400 kes.skey kes.vkey
 ```
 
 #### 9. Create VRF keys
