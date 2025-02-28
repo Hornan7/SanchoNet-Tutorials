@@ -110,3 +110,33 @@ cardano-cli conway node key-gen-VRF \
 --signing-key-file vrf.skey
 sudo chmod 400 vrf.skey vrf.vkey
 ```
+
+#### 10. Get the genesis files and topology
+```
+cd ~/sancho-src/share/sanchonet
+rm topology.json
+echo '{
+  "bootstrapPeers": [
+    {
+      "address": "sancho-testnet.able-pool.io",
+      "port": 6002
+    }
+  ],
+  "localRoots": [
+    {
+      "accessPoints": [],
+      "advertise": false,
+      "trustable": false,
+      "valency": 1
+    }
+  ],
+  "publicRoots": [
+    {
+      "accessPoints": [],
+      "advertise": false
+    }
+  ],
+  "useLedgerAfterSlot": 33695977
+}' > topology.json
+```
+
