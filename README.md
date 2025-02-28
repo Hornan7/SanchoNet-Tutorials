@@ -77,6 +77,7 @@ SyslogIdentifier=cardano-node
 [Install]
 WantedBy          = multi-user.target
 EOF
+sudo mv sancho-node.service /etc/systemd/system
 ```
 #### 6. Enable your Node linux service
 ```bash
