@@ -140,3 +140,8 @@ echo '{
 }' > topology.json
 ```
 
+#### 11. Create the operational cert
+```bash
+kesPeriod=416
+cardano-cli conway node issue-op-cert --kes-verification-key-file ~/keys/kes.vkey --cold-signing-key-file ~/keys/cold.skey --operational-certificate-issue-counter-file ~/keys/opcert.counter --kes-period ${kesPeriod} --out-file ~/keys/opcert.cert
+```
