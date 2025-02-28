@@ -1,5 +1,15 @@
 # SanchoNet-Tutorials
 
+## Content
+
++ [Sancho Wallet](#sancho-wallet)
+  - [Generate a wallet from the CLI](#generate-a-wallet-from-the-cli)
+  - [Generate a wallet from a mnemonic phrase](#generate-a-wallet-from-a-mnemonic-phrase)
+  - [Restore a wallet from a mnemonic phrase](#restore-a-wallet-from-a-mnemonic-phrase)
++ [Stake Pools](#stake-pools)
+  - [Create a block producer on SanchoNet](#create-a-block-producer-on-sanchonet)
+
+## Sancho Wallet
 ## Stake pools
 
 ### Create a block producer on SanchoNet
