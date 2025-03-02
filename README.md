@@ -167,6 +167,64 @@ cardano-cli conway stake-address build \
 
 #### 7. You are now ready to get money from [Mike](#get-sanchobucks-from-mike-or-the-king) or our beloved [King](#get-sanchobucks-from-mike-or-the-king)
 
+## Restore a wallet from a mnemonic phrase
+
+#### 1. Get the cardano-signer script from Martin Lang(ATADA)'s github repository. (If you don't already have it)
+The following command will get the `cardano-signer` binary file, extract it and move it to `/usr/local/bin` so you can use it globaly:
+```bash
+cd ~/sancho-src
+wget https://github.com/gitmachtl/cardano-signer/releases/download/v1.23.0/cardano-signer-1.23.0_linux-x64.tar.gz
+tar -xvf https://github.com/gitmachtl/cardano-signer/releases/download/v1.23.0/cardano-signer-1.23.0_linux-x64.tar.gz
+sudo mv cardano-signer /usr/local/bin
+``` 
+
+#### 2. Restore the payment key pairs and the secret.json file
+```bash
+cardano-signer keygen \
+--path payment \
+--mnemonics "WRITE DOWN YOUR SEED PHRASE HERE"  \
+--json-extended \
+--out-skey payment.xskey \
+--out-vkey payment.vkey \
+--out-file secret.json
+```
+
+#### 3. Double-check the contents of your `secret.json` file to ensure your payment keys have been properly restored.
+```bash
+cat secret.json | jq '.'
+```
+
+#### 4. Restore the stake key pairs from your mnemonic phrase
+```bash
+cardano-signer keygen \
+--path stake \
+--mnemonics "$(cat secret.json | jq -r .mnemonics)"  \
+--json-extended \
+--out-skey stake.xskey \
+--out-vkey stake.vkey | jq '.'
+```
+
+#### 5. Restore your wallet address
+```bash
+cardano-cli conway address build \
+--payment-verification-key-file payment.vkey \
+--stake-verification-key-file stake.vkey \
+--out-file payment.addr
+```
+
+#### 6. Restore your stake address
+```bash
+cardano-cli conway stake-address build \
+--stake-verification-key-file stake.vkey \
+--out-file stake.addr
+```
+
+#### 7. Query the UTXO of Your Payment Address to Verify If Your Wallet Balance Is Restored
+```bash
+cardano-cli conway query utxo \
+--address $(cat payment.addr)
+```
+
 ## Get SanchoBucks from Mike or the King
 Now when you are finally ready to get some SanchoBucks to build on SanchoNet, you can ask our beloved King [Big Joe the Don](https://x.com/bigjoethedon) or [Mike Hornan](https://x.com/Hornan7) directly.
 It is highly recommended to join the [ABLE pool Discord](https://discord.gg/tHYrxCtdHm) to hang out with us, or if you want to test or possibly break something. You might be surprised by how willing we are to test anything that could potentially damage the chain.
@@ -263,7 +321,7 @@ cardano-cli conway node key-gen-VRF \
 sudo chmod 400 vrf.skey vrf.vkey
 ```
 
-#### 7. Get the genesis files and topology
+#### 7. Modify your topology file
 ```
 cd ~/sancho-src/share/sanchonet
 rm topology.json
