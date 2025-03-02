@@ -21,6 +21,7 @@ License: CC-BY-4.0
   - [Generate a wallet from the CLI](#generate-a-wallet-from-the-cli)
   - [Generate a wallet from a mnemonic phrase](#generate-a-wallet-from-a-mnemonic-phrase)
   - [Restore a wallet from a mnemonic phrase](#restore-a-wallet-from-a-mnemonic-phrase)
+  - [Get SanchoBucks from the Mike or the King](#get-sanchobucks-from-mike-or-the-king)
 + [Stake Pools](#stake-pools)
   - [Create a block producer node](#create-a-block-producer-node)
   - [Create a relay node](#create-a-relay-node)
@@ -78,6 +79,13 @@ cardano-cli conway stake-address build \
 --stake-verification-key-file stake.vkey \
 --out-file stake.addr
 ```
+#### 5. You are now ready to get money from our beloved [King](#get-sanchobucks-from-mike-or-the-king)
+
+### Get SanchoBucks from Mike or the King
+Now when you are finally ready to get some SanchoBucks to build on SanchoNet, you can ask our beloved King [Big Joe the Don](https://x.com/bigjoethedon) or [Mike Hornan](https://x.com/Hornan7) directly.
+It is highly recommended to join the [ABLE pool Discord](https://discord.gg/tHYrxCtdHm) to hang out with us, or if you want to test or possibly break something. You might be surprised by how willing we are to test anything that could potentially damage the chain.
+Then Mike will send SanchoBucks directly to your wallet address. (Yes, he always answers his DMs.)
+
 
 ## Stake pools
 
