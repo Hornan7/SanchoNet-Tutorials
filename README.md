@@ -245,9 +245,8 @@ cardano-cli conway stake-address stake-delegation-certificate \
 #### 2. Build the transaction to submit the certificate on-chain
 ```bash
 cardano-cli conway transaction build \
---testnet-magic 4 \
 --witness-override 3 \
---tx-in $(cardano-cli query utxo --address $(cat payment.addr) --testnet-magic 4 --out-file  /dev/stdout | jq -r 'keys[0]') \
+--tx-in $(cardano-cli query utxo --address $(cat payment.addr) --out-file  /dev/stdout | jq -r 'keys[0]') \
 --change-address $(cat payment.addr) \
 --certificate-file delegation.cert \
 --out-file tx.raw
@@ -282,9 +281,8 @@ cardano-cli conway stake-address vote-delegation-certificate \
 #### 2. Build the transaction to submit the certificate on-chain
 ```bash
 cardano-cli conway transaction build \
---testnet-magic 4 \
 --witness-override 2 \
---tx-in $(cardano-cli query utxo --address $(cat payment.addr) --testnet-magic 4 --out-file  /dev/stdout | jq -r 'keys[0]') \
+--tx-in $(cardano-cli query utxo --address $(cat payment.addr) --out-file  /dev/stdout | jq -r 'keys[0]') \
 --change-address $(cat payment.addr) \
 --certificate-file vote-deleg.cert \
 --out-file tx.raw
@@ -296,7 +294,6 @@ cardano-cli conway transaction sign \
 --tx-body-file tx.raw \
 --signing-key-file payment.skey \
 --signing-key-file stake.skey \
---testnet-magic 4 \
 --out-file tx.signed
 ```
 
@@ -400,7 +397,6 @@ sudo chmod 400 vrf.skey vrf.vkey
 #### 7. Update your topology file with the correct bootstrap peer.
 ```
 cd ~/sancho-src/share/sanchonet
-rm topology.json
 echo '{
   "bootstrapPeers": [
     {
@@ -504,7 +500,6 @@ sudo systemctl enable sancho-node.service
 #### 4. Update your topology file with the correct bootstrap peer.
 ```
 cd ~/sancho-src/share/sanchonet
-rm topology.json
 echo '{
   "bootstrapPeers": [
     {
@@ -535,3 +530,164 @@ echo '{
 sudo systemctl start sancho-node.service
 ```
 
+# Delegated Representative
+
+## Create a DRep and register it
+
+#### 1. Generate a DRep key pair
+```bash
+cardano-cli conway governance drep key-gen \
+--verification-key-file drep.vkey \
+--signing-key-file drep.skey
+```
+
+#### 2. Generate a DRep ID
+Note that in the example below, we are generating a bech32-encoded ID. However, if you want to validate a vote in the future by querying the governance state of the ledger, your DRep ID will be displayed in hex format. 
+You can always obtain your hex-encoded ID by setting the output option to `--output-hex`.
+```bash
+cardano-cli conway governance drep id \
+--drep-verification-key-file drep.vkey \
+--output-bech32 \
+--out-file drep.id
+```
+
+#### 3. Create a DRep registration certificate
+```bash
+cardano-cli conway governance drep registration-certificate \
+--drep-verification-key-file drep.vkey \
+--key-reg-deposit-amt $(cardano-cli conway query gov-state | jq -r .currentPParams.dRepDeposit) \
+--out-file drep-register.cert
+```
+
+#### 4. Build the transaction to submit the certificate on-chain
+```bash
+cardano-cli conway transaction build \
+--witness-override 2 \
+--tx-in $(cardano-cli query utxo --address $(cat payment.addr) --out-file  /dev/stdout | jq -r 'keys[0]') \
+--change-address $(cat payment.addr) \
+--certificate-file drep-register.cert \
+--out-file tx.raw
+```
+
+#### 5. Sign the trasaction body file
+```bash
+cardano-cli conway transaction sign \
+--tx-body-file tx.raw \
+--signing-key-file payment.skey \
+--signing-key-file drep.skey \
+--out-file tx.signed
+```
+
+#### 6. Submit the transaction on-chain
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
+## Create a multi-signature DRep and register it
+
+#### 1. Generate DRep Key Pairs for Each Member of Your Multi-Sig Setup
+```bash
+cardano-cli conway governance drep key-gen \
+--verification-key-file drep.vkey \
+--signing-key-file drep.skey
+```
+
+#### 2. Obtain the DRep verification key hash for each member's verification key.
+```bash
+cardano-cli conway governance drep id \
+--drep-verification-key-file drep.vkey \
+--output-format hex \
+--out-file name-drep.hash
+```
+
+#### 3. Build the multi-signature script with each member's hash
+Note that you can replace the `atLeast` value with `all` and remove the `required` key-value pair if you want to require all signatures to vote on a governance action.
+Name the file `drep-script.json` and save it.
+```json
+{
+  "type": "atLeast",
+  "required": 2,
+  "scripts": [
+    {
+      "type": "sig",
+      "keyHash": "PUT MEMBER'S VERIFICATION KEY HASH HERE"
+    },
+    {
+      "type": "sig",
+      "keyHash": "5ab00e8cd1142fcffc5f7a2c2e3549874afd89e26995d7686c2714d4"
+    },
+    {
+      "type": "sig",
+      "keyHash": "db5a8cbb0df0359c36541727229993b21371f834202733c9bbabc1fd"
+    }
+  ]
+}
+```
+
+#### 4. Generate the Multi-Sig DRep Script Hash as Your ID
+```bash
+cardano-cli hash script \
+--script-file drep-script.json \
+--out-file drep-script.hash
+```
+
+#### 5. Generate the DRep registration certificate
+```bash
+cardano-cli conway governance drep registration-certificate \
+--drep-script-hash "$(cat drep-script.hash)" \
+--key-reg-deposit-amt $(cardano-cli conway query gov-state | jq -r .currentPParams.dRepDeposit) \
+--out-file drep-multisig-reg.cert
+```
+
+#### 6. Build the transaction to submit the certificate on-chain
+Note that the `--witness-override` value should be the number of members plus one, which accounts for both the members' signatures and the payment wallet signature for the transaction.
+```bash
+cardano-cli conway transaction build \
+--tx-in $(cardano-cli conway query utxo --address $(cat payment.addr) --output-json | jq -r 'keys[0]') \
+--change-address $(cat payment.addr) \
+--witness-override 4 \
+--certificate-file drep-multisig-reg.cert \
+--certificate-script-file drep-script.json \
+--out-file tx.raw
+```
+
+#### 7. Witness the transaction body file
+Share the transaction body file `tx.raw` with all members so they can sign it using the following command:
+```bash
+cardano-cli conway transaction witness \
+--tx-body-file tx.raw \
+--signing-key-file drep.skey \
+--out-file name-drep.witness
+```
+
+#### 8. As the orchestrator of the transaction, also sign it using your payment credential.
+```bash
+cardano-cli conway transaction witness \
+--tx-body-file tx.raw \
+--signing-key-file payment.skey \
+--out-file payment.witness
+```
+
+#### 9. Assemble the transaction with all the witnesses
+```bash
+cardano-cli conway transaction assemble \
+--tx-body-file tx.raw \
+--witness-file  payment.witness \
+--witness-file  name1-drep.witness \
+--witness-file  name2-drep.witness \
+--witness-file  name3-drep.witness \
+--out-file tx.signed
+```
+
+#### 10. Submit the transaction
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
+#### 11. Verify that your multi-signature DRep appears on-chain in the ledger's DRep state.
+```bash
+cardano-cli conway query drep-state \
+--drep-script-hash $(cat drep-script.hash)
+```
