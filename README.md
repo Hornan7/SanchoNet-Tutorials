@@ -30,7 +30,7 @@ License: CC-BY-4.0
 + [Delegated Representative](#delegated-representative)
   - [Create a DRep and register it](#create-a-drep-and-register-it)
   - [Create a multi-signature DRep and register it](#create-a-multi-signature-drep-and-register-it)
-+ [Constitutional Committee](#constitutional-committee)
++ [Constitutional Committee Consortium](#constitutional-committee-consortium)
   - [Download and install Nix](#download-and-install-nix)
   - [Install the Credential Manager tools](#install-the-credential-manager-tools)
   - [Generate Cardano keys and Openssl certificate signing request](#generate-cardano-keys-and-openssl-certificate-signing-request)
@@ -691,3 +691,85 @@ cardano-cli conway transaction submit \
 cardano-cli conway query drep-state \
 --drep-script-hash $(cat drep-script.hash)
 ```
+
+# Constitutional Committee Consortium
+
+## Download and install Nix
+
+#### 1. Get the single-user installation
+```bash
+sh <(curl -L https://nixos.org/nix/install) --no-daemon
+```
+
+#### 2. Configure your Nix installation
+```bash
+sudo mkdir -p /etc/nix/
+sudo cat > nix.conf << EOF
+experimental-features = nix-command flakes fetch-closure
+trusted-users = $(whoami)
+substituters = https://cache.iog.io https://cache.nixos.org/
+trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+EOF
+sudo mv nix.conf /etc/nix/
+```
+
+#### 3. Restart your system or device.
+```
+sudo reboot
+```
+
+## Install the Credential Manager tools
+
+#### 1. Clone the credential manager repository
+```bash
+mkdir ~/repos
+cd ~/repos
+git clone git@github.com:IntersectMBO/credential-manager.git
+```
+
+#### 2. Upgrade the Nix package manager and enter the Nix Shell
+Ensure that your system or device has a minimum of 8GB of memory before entering the shell. The first time you access it, the shell may take some time to build.
+```bash
+cd credential-manager
+nix upgrade-nix
+nix develop
+```
+
+#### 3. Update Cabal and compile the orchestrator-cli
+After entering the shell for the first time, you’ll need to compile the `orchestrator-cli`. However, before doing so, make sure to update Haskell Cabal first:
+```bash
+cabal update
+orchestrator-cli --help
+```
+
+## Generate Cardano keys and Openssl certificate signing request
+
+#### 1. Generate the Cardano keys that you will use for the Membership, Delegation, or Voting role.
+Replace the `NAME` variable with your name and the `ROLE` variable with your assigned role.
+```bash
+NAME="changeMe"
+ROLE="changeMe"
+
+cardano-cli conway address key-gen \
+--verification-key-file ${ROLE}.vkey \
+--signing-key-file ${ROLE}.skey
+```
+
+#### 2. Convert these keys into their OpenSSL equivalent format.
+```bash
+cat ${ROLE}.skey | jq -r ".cborHex" | cut -c 5- | (echo -n "302e020100300506032b657004220420" && cat) | xxd -r -p | base64 \
+| (echo "-----BEGIN PRIVATE KEY-----" && cat) | (cat && echo "-----END PRIVATE KEY-----") > ${ROLE}-private.pem
+```
+
+#### 3. Create your certificate signing request
+```bash
+openssl req -new -key ${ROLE}-priv.pem -out ${NAME}-${ROLE}.csr
+```
+
+#### 4. After completing all prompts, check the CSR file content before sending it to the Head of Security.
+```bash
+openssl req -in ${NAME}-${ROLE}.csr -text -noout
+```
+
+## The Head of security role and Certificate authority
+
