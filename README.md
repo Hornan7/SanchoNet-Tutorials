@@ -22,6 +22,8 @@ License: CC-BY-4.0
   - [Generate a wallet from a mnemonic phrase](#generate-a-wallet-from-a-mnemonic-phrase)
   - [Restore a wallet from a mnemonic phrase](#restore-a-wallet-from-a-mnemonic-phrase)
   - [Get SanchoBucks from the Mike or the King](#get-sanchobucks-from-mike-or-the-king)
+  - [Delegate to a stake pool](#delegate-to-a-stake-pool)
+  - [Delegate to a DRep](#delegate-to-a-drep)
 + [Stake Pools](#stake-pools)
   - [Create a block producer node](#create-a-block-producer-node)
   - [Create a relay node](#create-a-relay-node)
@@ -230,11 +232,85 @@ Now when you are finally ready to get some SanchoBucks to build on SanchoNet, yo
 It is highly recommended to join the [ABLE pool Discord](https://discord.gg/tHYrxCtdHm) to hang out with us, or if you want to test or possibly break something. You might be surprised by how willing we are to test anything that could potentially damage the chain.
 Then Mike will send SanchoBucks directly to your wallet address. (Yes, he always answers his DMs.)
 
+## Delegate to a stake pool
+
+#### 1. Create a stake delegation certificate
+```bash
+cardano-cli conway stake-address stake-delegation-certificate \
+--stake-verification-key-file stake.vkey \
+--stake-pool-id "THE ID OF THE STAKE POOL YOU ARE DELEGATING TO" \
+--out-file delegation.cert
+```
+
+#### 2. Build the transaction to submit the certificate on-chain
+```bash
+cardano-cli conway transaction build \
+--testnet-magic 4 \
+--witness-override 3 \
+--tx-in $(cardano-cli query utxo --address $(cat payment.addr) --testnet-magic 4 --out-file  /dev/stdout | jq -r 'keys[0]') \
+--change-address $(cat payment.addr) \
+--certificate-file delegation.cert \
+--out-file tx.raw
+```
+
+#### 3. Sign the transaction body file
+```bash
+cardano-cli conway transaction sign \
+--tx-body-file tx.raw \
+--signing-key-file payment.skey \
+--signing-key-file stake.skey \
+--out-file tx.signed
+```
+
+#### 4. Submit the transaction on-chain
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
+## Delegate to a DRep
+
+#### 1. Create a vote delegation certificate
+Note that when delegating the voting power of your wallet, you can opt to delegate to `--always-abstain` or `--always-no-confidence`. However, in the example below, we will delegate to a specific DRep ID.
+```bash
+cardano-cli conway stake-address vote-delegation-certificate \
+  --stake-verification-key-file stake.vkey \
+  --drep-key-hash "PUT YOUR DREP ID HERE" \
+  --out-file vote-deleg.cert
+```
+
+#### 2. Build the transaction to submit the certificate on-chain
+```bash
+cardano-cli conway transaction build \
+--testnet-magic 4 \
+--witness-override 2 \
+--tx-in $(cardano-cli query utxo --address $(cat payment.addr) --testnet-magic 4 --out-file  /dev/stdout | jq -r 'keys[0]') \
+--change-address $(cat payment.addr) \
+--certificate-file vote-deleg.cert \
+--out-file tx.raw
+```
+
+#### 3. Sign the transaction body file
+```bash
+cardano-cli conway transaction sign \
+--tx-body-file tx.raw \
+--signing-key-file payment.skey \
+--signing-key-file stake.skey \
+--testnet-magic 4 \
+--out-file tx.signed
+```
+
+#### 4. Submit the transaction on-chain
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
 # Stake pools
 
 ## Create a block producer node
 
-#### 1. Create your startnode executable file.
+#### 1. Create the startnode.sh executable
 ```bash
 cd ~
 echo '#!/bin/bash
@@ -263,7 +339,7 @@ cardano-node run \
 sudo chmod 755 startnode.sh
 ```
 
-#### 2. Create a linux service for your node
+#### 2. Set up a Linux service for your node.
 ```bash
 sudo cat > sancho-node.service << EOF
 [Unit]
@@ -289,13 +365,13 @@ WantedBy          = multi-user.target
 EOF
 sudo mv sancho-node.service /etc/systemd/system
 ```
-#### 3. Enable your Node linux service
+#### 3. Activate your Node Linux service.
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable sancho-node.service
 ```
 
-#### 4. Create your pool keys
+#### 4. Generate your pool key pairs and operational certificate counter
 ```bash
 cd ~/keys
 cardano-cli conway node key-gen \
@@ -305,7 +381,7 @@ cardano-cli conway node key-gen \
 sudo chmod 400 cold.skey cold.vkey
 ```
 
-#### 5. Create the KES keys
+#### 5. Generate the KES key pairs
 ```bash
 cardano-cli conway node key-gen-KES \
 --verification-key-file kes.vkey \
@@ -313,7 +389,7 @@ cardano-cli conway node key-gen-KES \
 sudo chmod 400 kes.skey kes.vkey
 ```
 
-#### 6. Create VRF keys
+#### 6. Generate the VRF key pairs
 ```bash
 cardano-cli conway node key-gen-VRF \
 --verification-key-file vrf.vkey \
@@ -321,7 +397,7 @@ cardano-cli conway node key-gen-VRF \
 sudo chmod 400 vrf.skey vrf.vkey
 ```
 
-#### 7. Modify your topology file
+#### 7. Update your topology file with the correct bootstrap peer.
 ```
 cd ~/sancho-src/share/sanchonet
 rm topology.json
@@ -350,7 +426,7 @@ echo '{
 }' > topology.json
 ```
 
-#### 8. Create the operational cert
+#### 8. Generate the operational certificate.
 ```bash
 kesPeriod=416
 cardano-cli conway node issue-op-cert \
@@ -361,3 +437,101 @@ cardano-cli conway node issue-op-cert \
 --out-file ~/keys/opcert.cert
 sudo chmod 400 ~/keys/opcert.cert
 ```
+
+#### 9. Its now ready to run
+```bash
+sudo systemctl start sancho-node.service
+```
+
+## Create a relay node
+
+#### 1. Create the startnode.sh executable
+```bash
+cd ~
+echo '#!/bin/bash
+
+# Configuration variables
+TOPOLOGY_FILE="${HOME}/sancho-src/share/sanchonet/topology.json"
+CONFIG_FILE="${HOME}/sancho-src/share/sanchonet/config.json"
+DATABASE_PATH="${HOME}/sancho-src/db"
+SOCKET_PATH="${HOME}/sancho-src/socket/node.socket"
+HOST_ADDR="0.0.0.0"
+PORT="6002"
+
+cardano-node run \
+    --topology "${TOPOLOGY_FILE}" \
+    --database-path "${DATABASE_PATH}" \
+    --socket-path "${SOCKET_PATH}" \
+    --host-addr "${HOST_ADDR}" \
+    --port "${PORT}" \
+    --config "${CONFIG_FILE}" ' >> startnode.sh
+sudo chmod 755 startnode.sh
+```
+
+#### 2. Set up a Linux service for your node.
+```bash
+sudo cat > sancho-node.service << EOF
+[Unit]
+Description       = Cardano Node Service
+Wants             = network-online.target
+After             = network-online.target
+
+[Service]
+User=$(whoami)
+Type=simple
+WorkingDirectory=/home/$(whoami)
+ExecStart=/home/$(whoami)/startnode.sh
+KillSignal=SIGINT
+RestartKillSignal=SIGINT
+TimeoutStopSec=300
+LimitNOFILE=32768
+Restart=always
+RestartSec=5
+SyslogIdentifier=cardano-node
+
+[Install]
+WantedBy          = multi-user.target
+EOF
+sudo mv sancho-node.service /etc/systemd/system
+```
+
+#### 3. Activate your Node Linux service.
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable sancho-node.service
+```
+
+#### 4. Update your topology file with the correct bootstrap peer.
+```
+cd ~/sancho-src/share/sanchonet
+rm topology.json
+echo '{
+  "bootstrapPeers": [
+    {
+      "address": "sancho-testnet.able-pool.io",
+      "port": 6002
+    }
+  ],
+  "localRoots": [
+    {
+      "accessPoints": [],
+      "advertise": false,
+      "trustable": false,
+      "valency": 1
+    }
+  ],
+  "publicRoots": [
+    {
+      "accessPoints": [],
+      "advertise": false
+    }
+  ],
+  "useLedgerAfterSlot": 33695977
+}' > topology.json
+```
+
+#### 5. Its now ready to run
+```bash
+sudo systemctl start sancho-node.service
+```
+
