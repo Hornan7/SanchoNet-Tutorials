@@ -772,4 +772,33 @@ openssl req -in ${NAME}-${ROLE}.csr -text -noout
 ```
 
 ## The Head of security role and Certificate authority
+This section will guide you through creating your self-signed certificate (certificate authority) to help you assume the role of Head of Security.
+#### 1. Generate Cardano keys and converting them to a PEM file
+```bash
+cardano-cli address key-gen --signing-key-file ca.skey --verification-key-file ca.vkey
+cat ca.skey | jq -r ".cborHex" | cut -c 5- | (echo -n "302e020100300506032b657004220420" && cat) | xxd -r -p | base64 | (echo "-----BEGIN PRIVATE KEY-----" && cat) | (cat && echo "-----END PRIVATE KEY-----") > ca-priv.pem
+```
+
+#### 2. Create a self-signed certificate (CA)
+You will be asked to provide some basic attribute information for the CA.
+```bash
+openssl req -x509 -new -key ca-priv.pem -days 3650 -out ca.cert
+```
+
+#### 3. Verify your Certificate Authority 
+```bash
+openssl x509 -in ca.cert -text -noout
+```
+
+#### 4. Examine the Consortium member's certificate signing request before approving it.
+Assume that `name` and `role` refer to the respective name and role of the consortium member requesting the signature.
+```bash
+openssl req -in name-role.csr -text -noout
+```
+
+#### 5. Sign each Certificate Signing Requests
+Of course, you need to provide the CA private key, the CA certificate, and the certificate signing request. The name and role on the signed certificate should correspond to those of the CSR file.
+```bash
+openssl x509 -days 365 -req -in name-role.csr -CA ca.cert -CAkey ca-priv.pem -out name-role.cert
+```
 
