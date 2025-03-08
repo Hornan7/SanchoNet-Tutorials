@@ -479,9 +479,23 @@ sudo systemctl start sancho-node.service
 ## Register your stake pool
 
 #### 1. Create you pool metadata
-Build your pool metadata according to this example below and add it to a URL that you own (ex: github)
+Create your pool metadata following the example below, and upload it to a URL that you control (e.g., your GitHub repository).
+```json
+{
+  "name": "Able Stake Pool",
+  "description": "Able Pool On Sancho Testnet",
+  "ticker": "ABLE",
+  "homepage": "https://able-pool.io"
+}
+```
 
-#### 1. Create the pool registration certificate
+#### 2. Get the hash of your metadata file
+```bash
+cardano-cli hash anchor-data \
+--url <THE URL LINK TO YOUR METADATA>
+```
+
+#### 3. Create the pool registration certificate
 ```bash
 cardano-cli conway stake-pool registration-certificate \
 --cold-verification-key-file cold.vkey \
@@ -493,12 +507,12 @@ cardano-cli conway stake-pool registration-certificate \
 --pool-owner-stake-verification-key-file stake.vkey \
 --pool-relay-ipv4 <RELAY NODE PUBLIC IP> \
 --pool-relay-port <RELAY NODE PORT> \
---metadata-url <POOL METADATA> \
+--metadata-url <POOL METADATA URL LINK> \
 --metadata-hash <THE HASH OF YOUR METADATA FILE> \
 --out-file pool-registration.cert
 ```
 
-#### 2. Build the transaction to submit the certificate on-chain
+#### 4. Build the transaction to submit the certificate on-chain
 ```bash
 cardano-cli conway transaction build \
 --witness-override 3 \
@@ -508,7 +522,7 @@ cardano-cli conway transaction build \
 --out-file tx.raw
 ```
 
-#### 3. Sign the transaction body file
+#### 5. Sign the transaction body file
 ```bash
 cardano-cli conway transaction sign \
 --tx-body-file tx.raw \
@@ -518,10 +532,24 @@ cardano-cli conway transaction sign \
 --out-file tx.signed
 ```
 
-#### 4. Submit the transaction on-chain
+#### 6. Submit the transaction on-chain
 ```bash
 cardano-cli conway transaction submit \
 --tx-file tx.signed
+```
+
+#### 7. Get your stake pool ID (bech32-encoded)
+```bash
+cardano-cli conway stake-pool id \ \
+--cold-verification-key-file cold.vkey \
+--output-format bech32 \
+--out-file pool.id
+```
+
+#### 8. Verify that your stake pool is registered
+```bash
+cardano-cli conway query pool-params \
+--stake-pool-id $(cat pool.id)
 ```
 
 ## Create a relay node
