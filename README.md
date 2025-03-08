@@ -22,10 +22,12 @@ License: CC-BY-4.0
   - [Generate a wallet from a mnemonic phrase](#generate-a-wallet-from-a-mnemonic-phrase)
   - [Restore a wallet from a mnemonic phrase](#restore-a-wallet-from-a-mnemonic-phrase)
   - [Get SanchoBucks from the Mike or the King](#get-sanchobucks-from-mike-or-the-king)
+  - [Register your stake address](#register-your-stake-address)
   - [Delegate to a stake pool](#delegate-to-a-stake-pool)
   - [Delegate to a DRep](#delegate-to-a-drep)
 + [Stake Pools](#stake-pools)
   - [Create a block producer node](#create-a-block-producer-node)
+  - [Register your stake pool](#register-your-stake-pool)
   - [Create a relay node](#create-a-relay-node)
 + [Delegated Representative](#delegated-representative)
   - [Create a DRep and register it](#create-a-drep-and-register-it)
@@ -232,6 +234,41 @@ Now when you are finally ready to get some SanchoBucks to build on SanchoNet, yo
 It is highly recommended to join the [ABLE pool Discord](https://discord.gg/tHYrxCtdHm) to hang out with us, or if you want to test or possibly break something. You might be surprised by how willing we are to test anything that could potentially damage the chain.
 Then Mike will send SanchoBucks directly to your wallet address. (Yes, he always answers his DMs.)
 
+## Register your stake address
+
+#### 1. Create the registration certificate
+```bash
+cardano-cli conway stake-address registration-certificate \
+--stake-verification-key-file stake.vkey \
+--key-reg-deposit-amt 2000000 \
+--out-file registration.cert
+```
+
+#### 2. Build the transaction to submit the certificate on-chain
+```bash
+cardano-cli conway transaction build \
+--witness-override 2 \
+--tx-in $(cardano-cli query utxo --address $(cat payment.addr) --out-file  /dev/stdout | jq -r 'keys[0]') \
+--change-address $(cat payment.addr) \
+--certificate-file registration.cert \
+--out-file tx.raw
+```
+
+#### 3. Sign the transaction body file
+```bash
+cardano-cli conway transaction sign \
+--tx-body-file tx.raw \
+--signing-key-file payment.skey \
+--signing-key-file stake.skey \
+--out-file tx.signed
+```
+
+#### 4. Submit the transaction on-chain
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
 ## Delegate to a stake pool
 
 #### 1. Create a stake delegation certificate
@@ -245,7 +282,7 @@ cardano-cli conway stake-address stake-delegation-certificate \
 #### 2. Build the transaction to submit the certificate on-chain
 ```bash
 cardano-cli conway transaction build \
---witness-override 3 \
+--witness-override 2 \
 --tx-in $(cardano-cli query utxo --address $(cat payment.addr) --out-file  /dev/stdout | jq -r 'keys[0]') \
 --change-address $(cat payment.addr) \
 --certificate-file delegation.cert \
@@ -437,6 +474,54 @@ sudo chmod 400 ~/keys/opcert.cert
 #### 9. Its now ready to run
 ```bash
 sudo systemctl start sancho-node.service
+```
+
+## Register your stake pool
+
+#### 1. Create you pool metadata
+Build your pool metadata according to this example below and add it to a URL that you own (ex: github)
+
+#### 1. Create the pool registration certificate
+```bash
+cardano-cli conway stake-pool registration-certificate \
+--cold-verification-key-file cold.vkey \
+--vrf-verification-key-file vrf.vkey \
+--pool-pledge 9000000000 \
+--pool-cost 340000000 \
+--pool-margin 0.05 \
+--pool-reward-account-verification-key-file stake.vkey \
+--pool-owner-stake-verification-key-file stake.vkey \
+--pool-relay-ipv4 <RELAY NODE PUBLIC IP> \
+--pool-relay-port <RELAY NODE PORT> \
+--metadata-url <POOL METADATA> \
+--metadata-hash <THE HASH OF YOUR METADATA FILE> \
+--out-file pool-registration.cert
+```
+
+#### 2. Build the transaction to submit the certificate on-chain
+```bash
+cardano-cli conway transaction build \
+--witness-override 3 \
+--tx-in $(cardano-cli query utxo --address $(cat payment.addr) --out-file  /dev/stdout | jq -r 'keys[0]') \
+--change-address $(cat payment.addr) \
+--certificate-file pool-registration.cert \
+--out-file tx.raw
+```
+
+#### 3. Sign the transaction body file
+```bash
+cardano-cli conway transaction sign \
+--tx-body-file tx.raw \
+--signing-key-file payment.skey \
+--signing-key-file stake.skey \
+--signing-key-file cold.skey \
+--out-file tx.signed
+```
+
+#### 4. Submit the transaction on-chain
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
 ```
 
 ## Create a relay node
