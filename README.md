@@ -22,15 +22,17 @@ License: CC-BY-4.0
   - [Generate a wallet from a mnemonic phrase](#generate-a-wallet-from-a-mnemonic-phrase)
   - [Restore a wallet from a mnemonic phrase](#restore-a-wallet-from-a-mnemonic-phrase)
   - [Get SanchoBucks from the Mike or the King](#get-sanchobucks-from-mike-or-the-king)
+  - [Register your stake address](#register-your-stake-address)
   - [Delegate to a stake pool](#delegate-to-a-stake-pool)
   - [Delegate to a DRep](#delegate-to-a-drep)
 + [Stake Pools](#stake-pools)
   - [Create a block producer node](#create-a-block-producer-node)
+  - [Register your stake pool](#register-your-stake-pool)
   - [Create a relay node](#create-a-relay-node)
 + [Delegated Representative](#delegated-representative)
   - [Create a DRep and register it](#create-a-drep-and-register-it)
   - [Create a multi-signature DRep and register it](#create-a-multi-signature-drep-and-register-it)
-+ [Constitutional Committee](#constitutional-committee)
++ [Constitutional Committee Consortium](#constitutional-committee-consortium)
   - [Download and install Nix](#download-and-install-nix)
   - [Install the Credential Manager tools](#install-the-credential-manager-tools)
   - [Generate Cardano keys and Openssl certificate signing request](#generate-cardano-keys-and-openssl-certificate-signing-request)
@@ -232,6 +234,41 @@ Now when you are finally ready to get some SanchoBucks to build on SanchoNet, yo
 It is highly recommended to join the [ABLE pool Discord](https://discord.gg/tHYrxCtdHm) to hang out with us, or if you want to test or possibly break something. You might be surprised by how willing we are to test anything that could potentially damage the chain.
 Then Mike will send SanchoBucks directly to your wallet address. (Yes, he always answers his DMs.)
 
+## Register your stake address
+
+#### 1. Create the registration certificate
+```bash
+cardano-cli conway stake-address registration-certificate \
+--stake-verification-key-file stake.vkey \
+--key-reg-deposit-amt 2000000 \
+--out-file registration.cert
+```
+
+#### 2. Build the transaction to submit the certificate on-chain
+```bash
+cardano-cli conway transaction build \
+--witness-override 2 \
+--tx-in $(cardano-cli query utxo --address $(cat payment.addr) --out-file  /dev/stdout | jq -r 'keys[0]') \
+--change-address $(cat payment.addr) \
+--certificate-file registration.cert \
+--out-file tx.raw
+```
+
+#### 3. Sign the transaction body file
+```bash
+cardano-cli conway transaction sign \
+--tx-body-file tx.raw \
+--signing-key-file payment.skey \
+--signing-key-file stake.skey \
+--out-file tx.signed
+```
+
+#### 4. Submit the transaction on-chain
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
 ## Delegate to a stake pool
 
 #### 1. Create a stake delegation certificate
@@ -245,7 +282,7 @@ cardano-cli conway stake-address stake-delegation-certificate \
 #### 2. Build the transaction to submit the certificate on-chain
 ```bash
 cardano-cli conway transaction build \
---witness-override 3 \
+--witness-override 2 \
 --tx-in $(cardano-cli query utxo --address $(cat payment.addr) --out-file  /dev/stdout | jq -r 'keys[0]') \
 --change-address $(cat payment.addr) \
 --certificate-file delegation.cert \
@@ -437,6 +474,82 @@ sudo chmod 400 ~/keys/opcert.cert
 #### 9. Its now ready to run
 ```bash
 sudo systemctl start sancho-node.service
+```
+
+## Register your stake pool
+
+#### 1. Create you pool metadata
+Create your pool metadata following the example below, and upload it to a URL that you control (e.g., your GitHub repository).
+```json
+{
+  "name": "Able Stake Pool",
+  "description": "Able Pool On Sancho Testnet",
+  "ticker": "ABLE",
+  "homepage": "https://able-pool.io"
+}
+```
+
+#### 2. Get the hash of your metadata file
+```bash
+cardano-cli hash anchor-data \
+--url <THE URL LINK TO YOUR METADATA>
+```
+
+#### 3. Create the pool registration certificate
+```bash
+cardano-cli conway stake-pool registration-certificate \
+--cold-verification-key-file cold.vkey \
+--vrf-verification-key-file vrf.vkey \
+--pool-pledge 9000000000 \
+--pool-cost 340000000 \
+--pool-margin 0.05 \
+--pool-reward-account-verification-key-file stake.vkey \
+--pool-owner-stake-verification-key-file stake.vkey \
+--pool-relay-ipv4 <RELAY NODE PUBLIC IP> \
+--pool-relay-port <RELAY NODE PORT> \
+--metadata-url <POOL METADATA URL LINK> \
+--metadata-hash <THE HASH OF YOUR METADATA FILE> \
+--out-file pool-registration.cert
+```
+
+#### 4. Build the transaction to submit the certificate on-chain
+```bash
+cardano-cli conway transaction build \
+--witness-override 3 \
+--tx-in $(cardano-cli query utxo --address $(cat payment.addr) --out-file  /dev/stdout | jq -r 'keys[0]') \
+--change-address $(cat payment.addr) \
+--certificate-file pool-registration.cert \
+--out-file tx.raw
+```
+
+#### 5. Sign the transaction body file
+```bash
+cardano-cli conway transaction sign \
+--tx-body-file tx.raw \
+--signing-key-file payment.skey \
+--signing-key-file stake.skey \
+--signing-key-file cold.skey \
+--out-file tx.signed
+```
+
+#### 6. Submit the transaction on-chain
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
+#### 7. Get your stake pool ID (bech32-encoded)
+```bash
+cardano-cli conway stake-pool id \ \
+--cold-verification-key-file cold.vkey \
+--output-format bech32 \
+--out-file pool.id
+```
+
+#### 8. Verify that your stake pool is registered
+```bash
+cardano-cli conway query pool-params \
+--stake-pool-id $(cat pool.id)
 ```
 
 ## Create a relay node
@@ -691,3 +804,114 @@ cardano-cli conway transaction submit \
 cardano-cli conway query drep-state \
 --drep-script-hash $(cat drep-script.hash)
 ```
+
+# Constitutional Committee Consortium
+
+## Download and install Nix
+
+#### 1. Get the single-user installation
+```bash
+sh <(curl -L https://nixos.org/nix/install) --no-daemon
+```
+
+#### 2. Configure your Nix installation
+```bash
+sudo mkdir -p /etc/nix/
+sudo cat > nix.conf << EOF
+experimental-features = nix-command flakes fetch-closure
+trusted-users = $(whoami)
+substituters = https://cache.iog.io https://cache.nixos.org/
+trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+EOF
+sudo mv nix.conf /etc/nix/
+```
+
+#### 3. Restart your system or device.
+```
+sudo reboot
+```
+
+## Install the Credential Manager tools
+
+#### 1. Clone the credential manager repository
+```bash
+mkdir ~/repos
+cd ~/repos
+git clone git@github.com:IntersectMBO/credential-manager.git
+```
+
+#### 2. Upgrade the Nix package manager and enter the Nix Shell
+Ensure that your system or device has a minimum of 8GB of memory before entering the shell. The first time you access it, the shell may take some time to build.
+```bash
+cd credential-manager
+nix upgrade-nix
+nix develop
+```
+
+#### 3. Update Cabal and compile the orchestrator-cli
+After entering the shell for the first time, you’ll need to compile the `orchestrator-cli`. However, before doing so, make sure to update Haskell Cabal first:
+```bash
+cabal update
+orchestrator-cli --help
+```
+
+## Generate Cardano keys and Openssl certificate signing request
+
+#### 1. Generate the Cardano keys that you will use for the Membership, Delegation, or Voting role.
+Replace the `NAME` variable with your name and the `ROLE` variable with your assigned role.
+```bash
+NAME="changeMe"
+ROLE="changeMe"
+
+cardano-cli conway address key-gen \
+--verification-key-file ${ROLE}.vkey \
+--signing-key-file ${ROLE}.skey
+```
+
+#### 2. Convert these keys into their OpenSSL equivalent format.
+```bash
+cat ${ROLE}.skey | jq -r ".cborHex" | cut -c 5- | (echo -n "302e020100300506032b657004220420" && cat) | xxd -r -p | base64 \
+| (echo "-----BEGIN PRIVATE KEY-----" && cat) | (cat && echo "-----END PRIVATE KEY-----") > ${ROLE}-private.pem
+```
+
+#### 3. Create your certificate signing request
+```bash
+openssl req -new -key ${ROLE}-priv.pem -out ${NAME}-${ROLE}.csr
+```
+
+#### 4. After completing all prompts, check the CSR file content before sending it to the Head of Security.
+```bash
+openssl req -in ${NAME}-${ROLE}.csr -text -noout
+```
+
+## The Head of security role and Certificate authority
+This section will guide you through creating your self-signed certificate (certificate authority) to help you assume the role of Head of Security.
+#### 1. Generate Cardano keys and converting them to a PEM file
+```bash
+cardano-cli address key-gen --signing-key-file ca.skey --verification-key-file ca.vkey
+cat ca.skey | jq -r ".cborHex" | cut -c 5- | (echo -n "302e020100300506032b657004220420" && cat) | xxd -r -p | base64 | (echo "-----BEGIN PRIVATE KEY-----" && cat) | (cat && echo "-----END PRIVATE KEY-----") > ca-priv.pem
+```
+
+#### 2. Create a self-signed certificate (CA)
+You will be asked to provide some basic attribute information for the CA.
+```bash
+openssl req -x509 -new -key ca-priv.pem -days 3650 -out ca.cert
+```
+
+#### 3. Verify your Certificate Authority 
+```bash
+openssl x509 -in ca.cert -text -noout
+```
+
+#### 4. Examine the Consortium member's certificate signing request before approving it.
+Assume that `name` and `role` refer to the respective name and role of the consortium member requesting the signature.
+```bash
+openssl req -in name-role.csr -text -noout
+```
+
+#### 5. Sign each Certificate Signing Requests
+Of course, you need to provide the CA private key, the CA certificate, and the certificate signing request. The name and role on the signed certificate should correspond to those of the CSR file.
+```bash
+openssl x509 -days 365 -req -in name-role.csr -CA ca.cert -CAkey ca-priv.pem -out name-role.cert
+```
+
