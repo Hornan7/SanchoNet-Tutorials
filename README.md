@@ -915,3 +915,382 @@ Of course, you need to provide the CA private key, the CA certificate, and the c
 openssl x509 -days 365 -req -in name-role.csr -CA ca.cert -CAkey ca-priv.pem -out name-role.cert
 ```
 
+## Mint the cold credential NFT
+Once the Head of Security has signed all the certificate signing requests, they will be sent to the orchestrator to mint the Cold Credential NFT.
+
+#### 1. Query the UTXO of the wallet that will be used for the seed input.
+The token name will be derived from the transaction input that you are going to use.
+```bash
+cardano-cli conway query utxo \
+--address $(cat payment.addr)
+```
+
+#### 2. Open your Nix shell
+```bash
+cd ~/repos/credential-manager
+nix develop
+```
+
+#### 3. Use the orchestrator-cli to create the asset.
+Please note that you may receive an error message if you have only one `--membership-cert` or one `--delegation-cert`, but this should not prevent you from proceeding.
+```bash
+orchestrator-cli init-cold \
+--seed-input "YOUR WALLET UTXO WITH ITS INDEX" \
+--testnet \
+--ca-cert example-certificates/ca-cert.pem \
+--membership-cert name1-membership.cert \
+--membership-cert name2-membership.cert \
+--membership-cert name3-membership.cert \
+--delegation-cert name4-delegation.cert \
+--delegation-cert name5-delegation.cert \
+--delegation-cert name6-delegation.cert \
+-o init-cold
+```
+
+#### 4. Exit the Nix shell and build the transaction to mint the cold NFT
+```bash
+cardano-cli conway transaction build \
+  --change-address $(cat payment.addr) \
+  --tx-in "THE UTXO YOU USED AS THE SEED INPUT" \
+  --tx-in-collateral "ANOTHER UTXO AS COLLATERAL" \
+  --tx-out "$(cat init-cold/nft.addr) + 9000000 + 1 $(cat init-cold/minting.plutus.hash).$(cat init-cold/nft-token-name)" \
+  --tx-out-inline-datum-file init-cold/nft.datum.json \
+  --mint "1 $(cat init-cold/minting.plutus.hash).$(cat init-cold/nft-token-name)" \
+  --mint-script-file init-cold/minting.plutus \
+  --mint-redeemer-file init-cold/mint.redeemer.json \
+  --out-file init-cold/body.json
+```
+
+#### 5. Sign the transaction
+```bash
+cardano-cli conway transaction sign \
+--signing-key-file payment.skey \
+--tx-body-file init-cold/body.json \
+--out-file init-cold/tx.json
+```
+
+#### 6. Submit the transaction
+```bash
+cardano-cli conway transaction submit \
+--tx-file init-cold/tx.json
+```
+
+#### 7. Confirm that the minting was successful
+```bash
+cardano-cli conway query utxo \
+--address $(cat init-cold/nft.addr) \
+--output-json \
+```
+
+#### 8. Get your Cold Credential script hash
+Now that your cold NFT is minted, you have to get elected through an [Update Committee and/or threshold](#update-committee-and/or-threshold) governance action.
+Here is how to get your script hash:
+```bash
+cat init-cold/credential.plutus.hash
+```
+
+## Mint the hot credential NFT
+You can mint the Hot NFT in advance, but you will only be able to authorize it after being officially elected as a Constitutional Committee Member.
+
+#### 1. Query the UTXO of the wallet that will be used for the seed input.
+The token name will be derived from the transaction input that you are going to use.
+```bash
+cardano-cli conway query utxo \
+--address $(cat payment.addr)
+```
+
+#### 2. Open your Nix shell
+```bash
+cd ~/repos/credential-manager
+nix develop
+```
+
+#### 3. Use the orchestrator-cli to create the asset.
+```bash
+orchestrator-cli init-hot \
+--seed-input "YOUR WALLET UTXO WITH ITS INDEX" \
+--testnet \
+--cold-nft-policy-id "$(cat init-cold/minting.plutus.hash)" \
+--cold-nft-token-name "$(cat init-cold/nft-token-name)" \
+--voting-cert name1-voter.cert \
+--voting-cert name2-voter.cert \
+--voting-cert name3-voter.cert \
+-o init-hot
+```
+
+#### 4. Exit the Nix shell and build the transaction to mint the hot NFT
+```bash
+cardano-cli conway transaction build \
+--change-address $(cat payment.addr) \
+--tx-in "THE UTXO YOU USED AS THE SEED INPUT" \
+--tx-in-collateral "ANOTHER UTXO AS COLLATERAL" \
+--tx-out "$(cat init-hot/nft.addr) + 9000000 + 1 $(cat init-hot/minting.plutus.hash).$(cat init-hot/nft-token-name)" \
+--tx-out-inline-datum-file init-hot/nft.datum.json \
+--mint "1 $(cat init-hot/minting.plutus.hash).$(cat init-hot/nft-token-name)" \
+--mint-script-file init-hot/minting.plutus \
+--mint-redeemer-file init-hot/mint.redeemer.json \
+--out-file init-hot/body.json
+```
+
+#### 5. Sign the transaction
+```bash
+cardano-cli conway transaction sign \
+--signing-key-file orchestrator.skey \
+--tx-body-file init-hot/body.json \
+--out-file init-hot/tx.json
+```
+
+#### 6. Submit the transaction
+```bash
+cardano-cli conway transaction submit \
+--tx-file init-hot/tx.json
+```
+
+#### 7. Confirm that the minting was successful
+```bash
+cardano-cli conway query utxo \
+--address $(cat init-hot/nft.addr) \
+--output-json \
+```
+
+## Authorize the Constitutional Committee hot credential
+
+#### 1. Get the cold NFT UTXO
+This may seem unusual at first, but you need to spend the Cold NFT UTXO to trigger the authorization of the Hot NFT.
+First, let's retrieve the Cold NFT UTXO that will be used as one of our transaction inputs.
+```bash
+cardano-cli conway query utxo \
+--address $(cat init-cold/nft.addr) \
+--output-json \
+--out-file cold-nft.utxo
+```
+
+#### 2. Open the Nix shell
+```bash
+cd ~/repos/credential-manager
+nix develop
+```
+
+#### 3. Use the orchestrator-cli to create the authorisation certificate
+```bash
+orchestrator-cli authorize \
+-u cold-nft.utxo \
+--cold-credential-script-file init-cold/credential.plutus \
+--hot-credential-script-file init-hot/credential.plutus \
+--out-dir authorize
+```
+
+#### 4. Obtain the signer hashes of those with the delegation role who will witness the transaction.
+Fortunately, as the orchestrator, you don’t need to request them directly—you can retrieve them from their certificates using the `orchestrator-cli`.
+```bash
+orchestrator-cli extract-pub-key-hash name1-delegation.cert
+```
+
+#### 5. Exit the Nix shell and build the transaction
+```bash
+cardano-cli conway transaction build \
+--tx-in "YOUR WALLET UTXO WITH ITS INDEX" \
+--tx-in-collateral "ANOTHER UTXO AS COLLATERAL" \
+--tx-in $(cardano-cli query utxo --address $(cat init-cold/nft.addr) --output-json | jq -r 'keys[0]') \
+--tx-in-script-file init-cold/nft.plutus \
+--tx-in-inline-datum-present \
+--tx-in-redeemer-file authorize/redeemer.json \
+--tx-out "$(cat authorize/value)" \
+--tx-out-inline-datum-file authorize/datum.json \
+--required-signer-hash "DELEGATER HASH 1" \
+--required-signer-hash "DELEGATER HASH 1" \
+--required-signer-hash "DELEGATER HASH 1" \
+--certificate-file authorize/authorizeHot.cert \
+--certificate-script-file init-cold/credential.plutus \
+--certificate-redeemer-value {} \
+--change-address $(cat payment.addr) \
+--out-file authorize/body.json
+```
+
+#### 6. Verify the transaction before you sign it
+```bash
+cardano-cli conway debug transaction view \
+--tx-body-file body.json
+```
+
+#### 7. Send the transaction body file to all those with the delegation role so they can witness it:
+As the orchestrator, you can send the `body.json` file to all those who hold the delegation role and will witness the transaction. They will have to sign using the following command:
+```bash
+cardano-cli conway transaction witness \
+--tx-body-file body.json \
+--signing-key-file name-delegation.skey \
+--out-file name-delegation.witness
+```
+> **Note**
+> If you are the orchestrator, don't forget to sign it as well with your payment signing key.
+
+```bash
+cardano-cli conway transaction witness \
+--tx-body-file body.json \
+--signing-key-file payment.skey \
+--out-file payment.witness
+```
+
+#### 8. Assemble the final transaction
+After receiving the signed witness files from everyone, you can proceed with assembling the final transaction.
+```bash
+cardano-cli conway transaction assemble \
+--tx-body-file body.json \
+--witness-file payment.witness \
+--witness-file name1-delegation.witness \
+--witness-file name2-delegation.witness \
+--witness-file name3-delegation.witness \
+--out-file tx.signed
+```
+
+#### 9. Submit the transaction on-chain
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
+## Vote on governance actions as a consortium
+
+#### 1. Query the active proposals on-chain
+This is the command to get all active proposals on chain:
+```bash
+cardano-cli conway query gov-state \
+| jq '.proposals[]'
+```
+> **Note**
+> Each proposal should follow this general structure, though specific details may vary depending on the type of governance action.
+> Select the ones you want to vote on and get the `actionId`s.
+```json
+  {
+    "actionId": {
+      "govActionIx": 0,
+      "txId": "ecda75ee2a80c93f8cbde6ba208ac25d62e37e46389a2d3125168f2a1b0472be"
+    },
+    "committeeVotes": {
+      "scriptHash-b568833ad1bd9ea5a2aaa552c4d386cc2af14eade1c92573fdb7432c": "VoteNo"
+    },
+    "dRepVotes": {
+      "keyHash-ddb7316d7f4ff1d69084f2352e4613284381f17474fd133dfb4bb6ed": "VoteNo",
+      "keyHash-fd1e9fb13ef9a4bdd0c7e47aef0bfc065eca6c4ac9b613861ccf20cb": "VoteYes"
+    },
+    "expiresAfter": 652,
+    "proposalProcedure": {
+      "anchor": {
+        "dataHash": "1805dc601b3b6fe259c646a94edb14d52534c09a0ee51e5ac502fa823b6a510c",
+        "url": "https://raw.githubusercontent.com/Ryun1/metadata/main/cip100/ga.jsonld"
+      },
+      "deposit": 100000000000,
+      "govAction": {
+        "tag": "InfoAction"
+      },
+      "returnAddr": {
+        "credential": {
+          "keyHash": "b5f97564c79d450ab5bc2cda0794c31de0676e168798f0d50eda0e6f"
+        },
+        "network": "Testnet"
+      }
+    },
+    "proposedIn": 592,
+    "stakePoolVotes": {}
+  }
+```
+
+#### 2. Get the hot NFT UTXO
+To trigger the vote, you need to spend the hot NFT UTXO, which is why we must query its UTXO first.
+```bash
+cardano-cli conway query utxo \
+--address $(cat init-hot/nft.addr) \
+--output-json \
+--out-file hot-nft.utxo
+```
+
+#### 3. Reach consensus on the vote among those with the voter role and hash the rational anchor file
+```bash
+cardano-cli hash anchor-data \
+--url <THE URL LINK TO YOUR METADATA> \
+--out-file anchor.hash
+```
+
+#### 4. Open the Nix shell
+```bash
+cd ~/repos/credential-manager
+nix develop
+```
+
+#### 5. Creating the vote files
+```bash
+orchestrator-cli vote \
+--utxo-file hot-nft.utxo \
+--hot-credential-script-file init-hot/credential.plutus \
+--governance-action-tx-id "ecda75ee2a80c93f8cbde6ba208ac25d62e37e46389a2d3125168f2a1b0472be" \
+--governance-action-index 0 \
+--yes \
+--metadata-url <THE URL LINK TO YOUR METADATA> \
+--metadata-hash $(cat anchor.hash) \
+--out-dir vote
+```
+
+#### 6. Obtain the signer hashes of those with the voter role who will witness the transaction.
+```bash
+orchestrator-cli extract-pub-key-hash name1-voter.cert
+```
+
+#### 7. Exit the Nix shell and build the vote transaction
+```bash
+cardano-cli conway transaction build \
+--tx-in "PAYMENT UTXO FROM THE ORCHESTRATOR WALLET" \
+--tx-in-collateral "ANOTHER UTXO FOR THE COLLATERAL" \
+--tx-in $(jq -r 'keys[0]' hot-nft.utxo) \
+--tx-in-script-file init-hot/nft.plutus \
+--tx-in-inline-datum-present \
+--tx-in-redeemer-file vote/redeemer.json \
+--tx-out "$(cat vote/value)" \
+--tx-out-inline-datum-file vote/datum.json \
+--required-signer-hash "VOTER HASH 1" \
+--required-signer-hash "VOTER HASH 2" \
+--required-signer-hash "VOTER HASH 3" \
+--vote-file vote/vote \
+--vote-script-file init-hot/credential.plutus \
+--vote-redeemer-value {} \
+--change-address $(cat payment.addr) \
+--out-file vote/body.json
+```
+
+#### 8. Send the transaction body file to all those with the voter role so they can witness it:
+```bash
+cardano-cli conway transaction witness \
+--tx-body-file body.json \
+--signing-key-file name-voter.skey \
+--out-file name-voter.witness
+```
+
+#### 9. Assemble the final transaction
+After receiving the signed witness files from everyone, you can proceed with assembling the final transaction.
+```bash
+cardano-cli conway transaction assemble \
+--tx-body-file body.json \
+--witness-file payment.witness \
+--witness-file name1-voter.witness \
+--witness-file name2-voter.witness \
+--witness-file name3-voter.witness \
+--out-file vote-tx.signed
+```
+
+#### 10. Submit the vote transaction
+```bash
+cardano-cli conway transaction submit \
+--tx-file vote-tx.signed
+```
+
+#### 11. Confirm that your vote was successfully recorded on-chain
+```bash
+cardano-cli conway query gov-state \
+| jq '.proposals[]'
+```
+
+# Build a governance action
+This section will cover governance actions, including building the action file, specifying and executing the guardrail script smart contract if needed, and constructing the transaction to submit it on-chain.
+
+## Motion of no-confidence
+
+#### 1. 
