@@ -1107,6 +1107,190 @@ cardano-cli conway transaction build \
 --out-file authorize/body.json
 ```
 
-#### 6. Send the transaction body file to all those with the delegation role so they can witness it:
+#### 6. Verify the transaction before you sign it
+```bash
+cardano-cli conway debug transaction view \
+--tx-body-file body.json
+```
 
+#### 7. Send the transaction body file to all those with the delegation role so they can witness it:
+As the orchestrator, you can send the `body.json` file to all those who hold the delegation role and will witness the transaction. They will have to sign using the following command:
+```bash
+cardano-cli conway transaction witness \
+--tx-body-file body.json \
+--signing-key-file name-delegation.skey \
+--out-file name-delegation.witness
+```
+> **Note**
+> If you are the orchestrator, don't forget to sign it as well with your payment signing key.
 
+```bash
+cardano-cli conway transaction witness \
+--tx-body-file body.json \
+--signing-key-file payment.skey \
+--out-file payment.witness
+```
+
+#### 8. Assemble the final transaction
+After receiving the signed witness files from everyone, you can proceed with assembling the final transaction.
+```bash
+cardano-cli conway transaction assemble \
+--tx-body-file body.json \
+--witness-file payment.witness \
+--witness-file name1-delegation.witness \
+--witness-file name2-delegation.witness \
+--witness-file name3-delegation.witness \
+--out-file tx.signed
+```
+
+#### 9. Submit the transaction on-chain
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
+## Vote on governance actions as a consortium
+
+#### 1. Query the active proposals on-chain
+This is the command to get all active proposals on chain:
+```bash
+cardano-cli conway query gov-state \
+| jq '.proposals[]'
+```
+> **Note**
+> Each proposal should follow this general structure, though specific details may vary depending on the type of governance action.
+> Select the ones you want to vote on and get the `actionId`s.
+```json
+  {
+    "actionId": {
+      "govActionIx": 0,
+      "txId": "ecda75ee2a80c93f8cbde6ba208ac25d62e37e46389a2d3125168f2a1b0472be"
+    },
+    "committeeVotes": {
+      "scriptHash-b568833ad1bd9ea5a2aaa552c4d386cc2af14eade1c92573fdb7432c": "VoteNo"
+    },
+    "dRepVotes": {
+      "keyHash-ddb7316d7f4ff1d69084f2352e4613284381f17474fd133dfb4bb6ed": "VoteNo",
+      "keyHash-fd1e9fb13ef9a4bdd0c7e47aef0bfc065eca6c4ac9b613861ccf20cb": "VoteYes"
+    },
+    "expiresAfter": 652,
+    "proposalProcedure": {
+      "anchor": {
+        "dataHash": "1805dc601b3b6fe259c646a94edb14d52534c09a0ee51e5ac502fa823b6a510c",
+        "url": "https://raw.githubusercontent.com/Ryun1/metadata/main/cip100/ga.jsonld"
+      },
+      "deposit": 100000000000,
+      "govAction": {
+        "tag": "InfoAction"
+      },
+      "returnAddr": {
+        "credential": {
+          "keyHash": "b5f97564c79d450ab5bc2cda0794c31de0676e168798f0d50eda0e6f"
+        },
+        "network": "Testnet"
+      }
+    },
+    "proposedIn": 592,
+    "stakePoolVotes": {}
+  }
+```
+
+#### 2. Get the hot NFT UTXO
+To trigger the vote, you need to spend the hot NFT UTXO, which is why we must query its UTXO first.
+```bash
+cardano-cli conway query utxo \
+--address $(cat init-hot/nft.addr) \
+--output-json \
+--out-file hot-nft.utxo
+```
+
+#### 3. Reach consensus on the vote among those with the voter role and hash the rational anchor file
+```bash
+cardano-cli hash anchor-data \
+--url <THE URL LINK TO YOUR METADATA> \
+--out-file anchor.hash
+```
+
+#### 4. Open the Nix shell
+```bash
+cd ~/repos/credential-manager
+nix develop
+```
+
+#### 5. Creating the vote files
+```bash
+orchestrator-cli vote \
+--utxo-file hot-nft.utxo \
+--hot-credential-script-file init-hot/credential.plutus \
+--governance-action-tx-id "ecda75ee2a80c93f8cbde6ba208ac25d62e37e46389a2d3125168f2a1b0472be" \
+--governance-action-index 0 \
+--yes \
+--metadata-url <THE URL LINK TO YOUR METADATA> \
+--metadata-hash $(cat anchor.hash) \
+--out-dir vote
+```
+
+#### 6. Obtain the signer hashes of those with the voter role who will witness the transaction.
+```bash
+orchestrator-cli extract-pub-key-hash name1-voter.cert
+```
+
+#### 7. Exit the Nix shell and build the vote transaction
+```bash
+cardano-cli conway transaction build \
+--tx-in "PAYMENT UTXO FROM THE ORCHESTRATOR WALLET" \
+--tx-in-collateral "ANOTHER UTXO FOR THE COLLATERAL" \
+--tx-in $(jq -r 'keys[0]' hot-nft.utxo) \
+--tx-in-script-file init-hot/nft.plutus \
+--tx-in-inline-datum-present \
+--tx-in-redeemer-file vote/redeemer.json \
+--tx-out "$(cat vote/value)" \
+--tx-out-inline-datum-file vote/datum.json \
+--required-signer-hash "VOTER HASH 1" \
+--required-signer-hash "VOTER HASH 2" \
+--required-signer-hash "VOTER HASH 3" \
+--vote-file vote/vote \
+--vote-script-file init-hot/credential.plutus \
+--vote-redeemer-value {} \
+--change-address $(cat payment.addr) \
+--out-file vote/body.json
+```
+
+#### 8. Send the transaction body file to all those with the voter role so they can witness it:
+```bash
+cardano-cli conway transaction witness \
+--tx-body-file body.json \
+--signing-key-file name-voter.skey \
+--out-file name-voter.witness
+```
+
+#### 9. Assemble the final transaction
+After receiving the signed witness files from everyone, you can proceed with assembling the final transaction.
+```bash
+cardano-cli conway transaction assemble \
+--tx-body-file body.json \
+--witness-file payment.witness \
+--witness-file name1-voter.witness \
+--witness-file name2-voter.witness \
+--witness-file name3-voter.witness \
+--out-file vote-tx.signed
+```
+
+#### 10. Submit the vote transaction
+```bash
+cardano-cli conway transaction submit \
+--tx-file vote-tx.signed
+```
+
+#### 11. Confirm that your vote was successfully recorded on-chain
+```bash
+cardano-cli conway query gov-state \
+| jq '.proposals[]'
+```
+
+# Build a governance action
+This section will cover governance actions, including building the action file, specifying and executing the guardrail script smart contract if needed, and constructing the transaction to submit it on-chain.
+
+## Motion of no-confidence
+
+#### 1. 
