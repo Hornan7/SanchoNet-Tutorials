@@ -43,13 +43,13 @@ License: CC-BY-4.0
   - [Vote on governance actions as a consortium](#vote-on-governance-actions-as-a-consortium)
 + [Build a governance action](#build-a-governance-action)
   - [Motion of no-confidence](#motion-of-no-confidence)
-  - [Update Committee and/or threshold](#update-committee-and/or-threshold)
+  - [Update Committee](#update-committee)
   - [New Constitution or Guardrail Scripts](#new-constitution-or-guardrail-scripts)
   - [Hard-Fork Initiation](#hard-fork-initiation)
-  - [Protocol parameter changes](#protocol-parameter-changes)
+  - [Protocol parameters change](#protocol-parameters-change)
   - [Treasury withdrawal](#treasury-withdrawal)
   - [Info action](#info-action)
-+ [Usefull Scripts](#usefull-scripts)
++ [Usefull Commands](#usefull-commands)
 
 ## Initial Environment Configuration
 
@@ -1310,7 +1310,7 @@ cardano-cli conway governance action create-no-confidence \
 Ensure that your UTXO has sufficient funds to cover both the deposit and transaction fees, or you will receive an error message. You can always include additional UTXOs to spend if necessary.
 ```bash
 cardano-cli conway transaction build \
---tx-in "$(cardano-cli query utxo --address "$(cat payment.addr)" --testnet-magic 4 --out-file /dev/stdout | jq -r 'keys[0]')" \
+--tx-in "$(cardano-cli query utxo --address "$(cat payment.addr)" --out-file /dev/stdout | jq -r 'keys[0]')" \
 --change-address $(cat payment.addr) \
 --proposal-file no-confidence.action \
 --out-file tx.raw
@@ -1330,7 +1330,7 @@ cardano-cli conway transaction submit \
 --tx-file tx.signed
 ```
 
-## Update Committee and/or threshold
+## Update Committee
 The Update Committee governance actions enable you to add or remove any number of members and adjust their voting threshold. The example command below adds two new members, removes one existing member, and sets their voting threshold to 2/3, or 67%.
 #### 1. Build your action file
 ```bash
@@ -1355,7 +1355,7 @@ cardano-cli conway governance action update-committee \
 Ensure that your UTXO has sufficient funds to cover both the deposit and transaction fees, or you will receive an error message. You can always include additional UTXOs to spend if necessary.
 ```bash
 cardano-cli conway transaction build \
---tx-in "$(cardano-cli query utxo --address "$(cat payment.addr)" --testnet-magic 4 --out-file /dev/stdout | jq -r 'keys[0]')" \
+--tx-in "$(cardano-cli query utxo --address "$(cat payment.addr)" --out-file /dev/stdout | jq -r 'keys[0]')" \
 --change-address $(cat payment.addr) \
 --proposal-file update-committee.action \
 --out-file tx.raw
@@ -1397,7 +1397,7 @@ cardano-cli conway governance action create-constitution \
 Ensure that your UTXO has sufficient funds to cover both the deposit and transaction fees, or you will receive an error message. You can always include additional UTXOs to spend if necessary.
 ```bash
 cardano-cli conway transaction build \
---tx-in "$(cardano-cli query utxo --address "$(cat payment.addr)" --testnet-magic 4 --out-file /dev/stdout | jq -r 'keys[0]')" \
+--tx-in "$(cardano-cli query utxo --address "$(cat payment.addr)" --out-file /dev/stdout | jq -r 'keys[0]')" \
 --change-address $(cat payment.addr) \
 --proposal-file constitution.action \
 --out-file tx.raw
@@ -1418,3 +1418,174 @@ cardano-cli conway transaction submit \
 ```
 
 ## Hard-Fork Initiation
+
+#### 1. Build your action file
+```bash
+cardano-cli conway governance action create-hardfork \
+--testnet \
+--governance-action-deposit 100000000000 \
+--deposit-return-stake-verification-key-file stake.vkey \
+--prev-governance-action-tx-id <PREVIOUS HARDFORK ACTION ID> \
+--prev-governance-action-index <PREVIOUS HARDFORK ACTION INDEX> \
+--anchor-url <THE URL LINK TO YOUR RATIONAL> \
+--anchor-data-hash <THE HASH OF YOUR RATIONAL FILE> \
+--protocol-major-version 11 \
+--out-file hardfork.action
+```
+
+#### 2. Build your transaction body file
+Ensure that your UTXO has sufficient funds to cover both the deposit and transaction fees, or you will receive an error message. You can always include additional UTXOs to spend if necessary.
+```bash
+cardano-cli conway transaction build \
+--tx-in "$(cardano-cli query utxo --address "$(cat payment.addr)" --out-file /dev/stdout | jq -r 'keys[0]')" \
+--change-address $(cat payment.addr) \
+--proposal-file hardfork.action \
+--out-file tx.raw
+```
+
+#### 3. Sign the transaction
+```bash
+cardano-cli conway transaction sign \
+--tx-body-file tx.raw \
+--signing-key-file payment.skey \
+--out-file tx.signed
+```
+
+#### 4. Submit the transaction
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
+## Protocol parameters change
+
+#### 1. Build your action file
+```bash
+cardano-cli conway governance action create-protocol-parameters-update \
+--testnet \
+--governance-action-deposit 100000000000 \
+--deposit-return-stake-verification-key-file stake.vkey \
+--anchor-url <THE URL LINK TO YOUR RATIONAL> \
+--anchor-data-hash <THE HASH OF YOUR RATIONAL FILE> \
+--constitution-script-hash <THE SCRIPT HASH OF THE CONSTITUTION GUARDRAIL SCRIPT> \
+--key-reg-deposit-amt 1000000 \
+--out-file pp-update.action
+```
+
+#### 2. Build your transaction body file
+Ensure that your UTXO has sufficient funds to cover both the deposit and transaction fees, or you will receive an error message. You can always include additional UTXOs to spend if necessary.
+```bash
+cardano-cli conway transaction build \
+--tx-in "$(cardano-cli query utxo --address "$(cat payment.addr)" --out-file /dev/stdout | jq -r 'keys[0]')" \
+--change-address $(cat payment.addr) \
+--proposal-file pp-update.action \
+--out-file tx.raw
+```
+
+#### 3. Sign the transaction
+```bash
+cardano-cli conway transaction sign \
+--tx-body-file tx.raw \
+--signing-key-file payment.skey \
+--out-file tx.signed
+```
+
+#### 4. Submit the transaction
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
+## Treasury withdrawal
+
+#### 1. Build your action file
+```bash
+cardano-cli conway governance action create-treasury-withdrawal \
+--testnet \
+--governance-action-deposit 100000000000 \
+--deposit-return-stake-verification-key-file stake.vkey \
+--anchor-url <THE URL LINK TO YOUR RATIONAL> \
+--anchor-data-hash <THE HASH OF YOUR RATIONAL FILE> \
+--funds-receiving-stake-verification-key-file stake.vkey \
+--constitution-script-hash <THE SCRIPT HASH OF THE CONSTITUTION GUARDRAIL SCRIPT> \
+--transfer 50000000000 \
+--out-file treasury.action
+```
+
+#### 2. Build your transaction body file
+Ensure that your UTXO has sufficient funds to cover both the deposit and transaction fees, or you will receive an error message. You can always include additional UTXOs to spend if necessary.
+```bash
+cardano-cli conway transaction build \
+--tx-in "$(cardano-cli query utxo --address "$(cat payment.addr)" --out-file /dev/stdout | jq -r 'keys[0]')" \
+--change-address $(cat payment.addr) \
+--proposal-file treasury.action \
+--out-file tx.raw
+```
+
+#### 3. Sign the transaction
+```bash
+cardano-cli conway transaction sign \
+--tx-body-file tx.raw \
+--signing-key-file payment.skey \
+--out-file tx.signed
+```
+
+#### 4. Submit the transaction
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
+## Info action
+
+#### 1. Build your action file
+```bash
+cardano-cli conway governance action create-info \
+--testnet \
+--governance-action-deposit 100000000000 \
+--deposit-return-stake-verification-key-file stake.vkey \
+--anchor-url <THE URL LINK TO YOUR RATIONAL> \
+--anchor-data-hash <THE HASH OF YOUR RATIONAL FILE> \
+--out-file info.action
+```
+
+#### 2. Build your transaction body file
+Ensure that your UTXO has sufficient funds to cover both the deposit and transaction fees, or you will receive an error message. You can always include additional UTXOs to spend if necessary.
+```bash
+cardano-cli conway transaction build \
+--tx-in "$(cardano-cli query utxo --address "$(cat payment.addr)" --out-file /dev/stdout | jq -r 'keys[0]')" \
+--change-address $(cat payment.addr) \
+--proposal-file info.action \
+--out-file tx.raw
+```
+
+#### 3. Sign the transaction
+```bash
+cardano-cli conway transaction sign \
+--tx-body-file tx.raw \
+--signing-key-file payment.skey \
+--out-file tx.signed
+```
+
+#### 4. Submit the transaction
+```bash
+cardano-cli conway transaction submit \
+--tx-file tx.signed
+```
+
+# Usefull Commands
+
+#### Retrieve All Previous Governance Action IDs, Sorted by Type
+```bash
+cardano-cli conway query gov-state | jq -r '.nextRatifyState.nextEnactState.prevGovActionIds'
+```
+
+#### Retrieve all active governance actions on-chain
+```bash
+cardano-cli conway query gov-state | jq '.proposals'
+```
+
+#### Retrieve the Constitution URL link, its hash, and the Guardrails script hash
+```bash
+cardano-cli conway query constitution
+```
