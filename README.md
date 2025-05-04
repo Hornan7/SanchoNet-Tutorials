@@ -55,7 +55,7 @@ License: CC-BY-4.0
 
 #### 1. Create a file for your node, database, socket and keys.
 ```bash
-mkdir ~/sancho-src ~/keys ~/sancho-src/db ~/sancho-src/socket
+mkdir ~/sancho-src ~/keys ~/sancho-src/db ~/sancho-src/socket ~/sancho-src/config
 cd sancho-src
 ```
 
@@ -80,6 +80,22 @@ echo 'export CARDANO_NODE_SOCKET_PATH=${HOME}/sancho-src/socket/node.socket' >> 
 echo 'export CARDANO_NODE_NETWORK_ID=4' >> ~/.bashrc
 source ~/.bashrc
 ```
+
+#### 5. Get the SanchoNet genesis, configuration and topology files
+```bash
+cd ~/sancho-src/config
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/byron-genesis.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/shelley-genesis.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/alonzo-genesis.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/conway-genesis.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/config.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/topology.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/guardrails-script.plutus
+```
+
+#### 6. Build your node
+Refer to the [Create a relay node](#create-a-relay-node) section to learn how to build a SanchoNet relay
+node and jpin the governance training network.
 
 # Sancho Wallet
 
