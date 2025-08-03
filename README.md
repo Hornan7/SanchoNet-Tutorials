@@ -871,7 +871,7 @@ cardano-cli conway address key-gen \
 #### 2. Convert these keys into their OpenSSL equivalent format.
 ```bash
 cat ${ROLE}.skey | jq -r ".cborHex" | cut -c 5- | (echo -n "302e020100300506032b657004220420" && cat) | xxd -r -p | base64 \
-| (echo "-----BEGIN PRIVATE KEY-----" && cat) | (cat && echo "-----END PRIVATE KEY-----") > ${ROLE}-private.pem
+| (echo "-----BEGIN PRIVATE KEY-----" && cat) | (cat && echo "-----END PRIVATE KEY-----") > ${ROLE}-priv.pem
 ```
 
 #### 3. Create your certificate signing request
