@@ -979,7 +979,7 @@ cardano-cli conway transaction submit \
 ```bash
 cardano-cli conway query utxo \
 --address $(cat init-cold/nft.addr) \
---output-json \
+--output-json
 ```
 
 #### 8. Get your Cold Credential script hash
