@@ -983,7 +983,7 @@ cardano-cli conway query utxo \
 ```
 
 #### 8. Get your Cold Credential script hash
-Now that your cold NFT is minted, you have to get elected through an [Update Committee and/or threshold](#update-committee-and/or-threshold) governance action.
+Now that your cold NFT is minted, you have to get elected through an [Update Committee](#update-committee) governance action.
 Here is how to get your script hash:
 ```bash
 cat init-cold/credential.plutus.hash
