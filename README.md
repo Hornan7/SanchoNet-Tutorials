@@ -1035,7 +1035,7 @@ cardano-cli conway transaction build \
 #### 5. Sign the transaction
 ```bash
 cardano-cli conway transaction sign \
---signing-key-file orchestrator.skey \
+--signing-key-file payment.skey \
 --tx-body-file init-hot/body.json \
 --out-file init-hot/tx.json
 ```
