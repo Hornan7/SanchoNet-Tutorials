@@ -55,19 +55,19 @@ License: CC-BY-4.0
 
 #### 1. Create a file for your node, database, socket and keys.
 ```bash
-mkdir ~/sancho-src ~/keys ~/sancho-src/db ~/sancho-src/socket
+mkdir -p ~/sancho-src ~/keys ~/sancho-src/db ~/sancho-src/socket ~/sancho-src/share/sanchonet
 cd sancho-src
 ```
 
 #### 2. Grab the binary files of the last node version release. (Yes, because on SanchoNet, we test the latest)
 ```bash
-wget https://github.com/IntersectMBO/cardano-node/releases/download/10.2.1/cardano-node-10.2.1-linux.tar.gz
+wget https://github.com/IntersectMBO/cardano-node/releases/download/10.5.1/cardano-node-10.5.1-linux.tar.gz
 ```
 
 #### 3. Extract them and move the binaries to /usr/local/bin so they can be used globaly
 ```bash
-tar -xvf cardano-node-10.2.1-linux.tar.gz
-rm cardano-node-10.2.1-linux.tar.gz
+tar -xvf cardano-node-10.5.1-linux.tar.gz
+rm cardano-node-10.5.1-linux.tar.gz
 cd bin
 sudo mv cardano-node /usr/local/bin
 sudo mv cardano-cli /usr/local/bin
@@ -79,6 +79,18 @@ This should allow you to write cardano-cli commands and queries without having t
 echo 'export CARDANO_NODE_SOCKET_PATH=${HOME}/sancho-src/socket/node.socket' >> ~/.bashrc
 echo 'export CARDANO_NODE_NETWORK_ID=4' >> ~/.bashrc
 source ~/.bashrc
+```
+
+#### 5. Get the configuration files
+```bash
+cd ~/sancho-src/share/sanchonet
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/byron-genesis.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/shelley-genesis.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/alonzo-genesis.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/conway-genesis.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/config.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/topology.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/guardrails-script.plutus
 ```
 
 # Sancho Wallet
@@ -871,7 +883,7 @@ cardano-cli conway address key-gen \
 #### 2. Convert these keys into their OpenSSL equivalent format.
 ```bash
 cat ${ROLE}.skey | jq -r ".cborHex" | cut -c 5- | (echo -n "302e020100300506032b657004220420" && cat) | xxd -r -p | base64 \
-| (echo "-----BEGIN PRIVATE KEY-----" && cat) | (cat && echo "-----END PRIVATE KEY-----") > ${ROLE}-private.pem
+| (echo "-----BEGIN PRIVATE KEY-----" && cat) | (cat && echo "-----END PRIVATE KEY-----") > ${ROLE}-priv.pem
 ```
 
 #### 3. Create your certificate signing request
@@ -937,7 +949,7 @@ Please note that you may receive an error message if you have only one `--member
 orchestrator-cli init-cold \
 --seed-input "YOUR WALLET UTXO WITH ITS INDEX" \
 --testnet \
---ca-cert example-certificates/ca-cert.pem \
+--ca-cert ca.cert \
 --membership-cert name1-membership.cert \
 --membership-cert name2-membership.cert \
 --membership-cert name3-membership.cert \
@@ -979,11 +991,11 @@ cardano-cli conway transaction submit \
 ```bash
 cardano-cli conway query utxo \
 --address $(cat init-cold/nft.addr) \
---output-json \
+--output-json
 ```
 
 #### 8. Get your Cold Credential script hash
-Now that your cold NFT is minted, you have to get elected through an [Update Committee and/or threshold](#update-committee-and/or-threshold) governance action.
+Now that your cold NFT is minted, you have to get elected through an [Update Committee](#update-committee) governance action.
 Here is how to get your script hash:
 ```bash
 cat init-cold/credential.plutus.hash
@@ -1035,7 +1047,7 @@ cardano-cli conway transaction build \
 #### 5. Sign the transaction
 ```bash
 cardano-cli conway transaction sign \
---signing-key-file orchestrator.skey \
+--signing-key-file payment.skey \
 --tx-body-file init-hot/body.json \
 --out-file init-hot/tx.json
 ```
@@ -1050,7 +1062,7 @@ cardano-cli conway transaction submit \
 ```bash
 cardano-cli conway query utxo \
 --address $(cat init-hot/nft.addr) \
---output-json \
+--output-json
 ```
 
 ## Authorize the Constitutional Committee hot credential
