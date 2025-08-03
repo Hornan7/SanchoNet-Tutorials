@@ -937,7 +937,7 @@ Please note that you may receive an error message if you have only one `--member
 orchestrator-cli init-cold \
 --seed-input "YOUR WALLET UTXO WITH ITS INDEX" \
 --testnet \
---ca-cert example-certificates/ca-cert.pem \
+--ca-cert ca.cert \
 --membership-cert name1-membership.cert \
 --membership-cert name2-membership.cert \
 --membership-cert name3-membership.cert \
