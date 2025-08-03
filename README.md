@@ -1050,7 +1050,7 @@ cardano-cli conway transaction submit \
 ```bash
 cardano-cli conway query utxo \
 --address $(cat init-hot/nft.addr) \
---output-json \
+--output-json
 ```
 
 ## Authorize the Constitutional Committee hot credential
