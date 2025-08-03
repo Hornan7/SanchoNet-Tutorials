@@ -61,13 +61,13 @@ cd sancho-src
 
 #### 2. Grab the binary files of the last node version release. (Yes, because on SanchoNet, we test the latest)
 ```bash
-wget https://github.com/IntersectMBO/cardano-node/releases/download/10.2.1/cardano-node-10.2.1-linux.tar.gz
+wget https://github.com/IntersectMBO/cardano-node/releases/download/10.5.1/cardano-node-10.5.1-linux.tar.gz
 ```
 
 #### 3. Extract them and move the binaries to /usr/local/bin so they can be used globaly
 ```bash
-tar -xvf cardano-node-10.2.1-linux.tar.gz
-rm cardano-node-10.2.1-linux.tar.gz
+tar -xvf cardano-node-10.5.1-linux.tar.gz
+rm cardano-node-10.5.1-linux.tar.gz
 cd bin
 sudo mv cardano-node /usr/local/bin
 sudo mv cardano-cli /usr/local/bin
