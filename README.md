@@ -1122,7 +1122,7 @@ cardano-cli conway transaction build \
 #### 6. Verify the transaction before you sign it
 ```bash
 cardano-cli debug transaction view \
---tx-body-file body.json
+--tx-body-file authorize/body.json
 ```
 
 #### 7. Send the transaction body file to all those with the delegation role so they can witness it:
