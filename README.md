@@ -1110,8 +1110,8 @@ cardano-cli conway transaction build \
 --tx-out "$(cat authorize/value)" \
 --tx-out-inline-datum-file authorize/datum.json \
 --required-signer-hash "DELEGATER HASH 1" \
---required-signer-hash "DELEGATER HASH 1" \
---required-signer-hash "DELEGATER HASH 1" \
+--required-signer-hash "DELEGATER HASH 2" \
+--required-signer-hash "DELEGATER HASH 3" \
 --certificate-file authorize/authorizeHot.cert \
 --certificate-script-file init-cold/credential.plutus \
 --certificate-redeemer-value {} \
