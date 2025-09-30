@@ -129,33 +129,23 @@ cardano-cli conway stake-address build \
 
 ## Generate a wallet from a mnemonic phrase
 
-#### 1. Get the cardano-signer script from Martin Lang(ATADA)'s github repository.
-*Martin Lang is a very well known Cardano Developer and a great Stake pool operator. So shout out to him for his great scripts.*
-The following command will get the `cardano-signer` binary file, extract it and move it to `/usr/local/bin` so you can use it globaly:
+#### 1. Generate a Mnemonic phrase
 ```bash
-cd ~/sancho-src
-wget https://github.com/gitmachtl/cardano-signer/releases/download/v1.23.0/cardano-signer-1.23.0_linux-x64.tar.gz
-tar -xvf https://github.com/gitmachtl/cardano-signer/releases/download/v1.23.0/cardano-signer-1.23.0_linux-x64.tar.gz
-sudo mv cardano-signer /usr/local/bin
+cd ~/keys
+cardano-cli conway key generate-mnemonic \
+--size 24 > mnemonic
 ```
 
-#### 2. Generate payment key pairs and the secret.json file
+#### 2. Derive your payment extended signing key from mnemonic
 ```bash
-cardano-signer keygen \
---path payment \
---json-extended \
---out-skey payment.xskey \
---out-vkey payment.vkey \
---out-file secret.json
+cardano-cli conway key derive-from-mnemonic \
+--payment-key-with-number 0 \
+--account-number 0 \
+--mnemonic-from-file mnemonic \
+--signing-key-file payment.xskey
 ```
 
-#### 3. Write down your seed phrase and keep it safe.
-*While we don't prioritize security for SanchoNet, it's definitely worth protecting it for Mainnet use. (Yes that involve the use of a cold environment to generate these)*
-```bash
-cat secret.json | jq .mnemonics
-```
-
-#### 4. Generate stake key pairs from your mnemonic phrase
+#### 3. Generate stake key pairs from your mnemonic phrase
 ```bash
 cardano-signer keygen \
 --path stake \
@@ -166,7 +156,7 @@ cardano-signer keygen \
 ```
 Make sure the mnemonic phrase in the output of this command matches the one you generated for your payment keys.
 
-#### 5. Build your wallet address
+#### 4. Build your wallet address
 ```bash
 cardano-cli conway address build \
 --payment-verification-key-file payment.vkey \
@@ -174,14 +164,14 @@ cardano-cli conway address build \
 --out-file payment.addr
 ```
 
-#### 6. Build your stake address
+#### 5. Build your stake address
 ```bash
 cardano-cli conway stake-address build \
 --stake-verification-key-file stake.vkey \
 --out-file stake.addr
 ```
 
-#### 7. You are now ready to get money from [Mike](#get-sanchobucks-from-mike-or-the-king) or our beloved [King](#get-sanchobucks-from-mike-or-the-king)
+#### 6. You are now ready to get money from [Mike](#get-sanchobucks-from-mike-or-the-king) or our beloved [King](#get-sanchobucks-from-mike-or-the-king)
 
 ## Restore a wallet from a mnemonic phrase
 
@@ -875,23 +865,39 @@ Replace the `NAME` variable with your name and the `ROLE` variable with your ass
 NAME="changeMe"
 ROLE="changeMe"
 
-cardano-cli conway address key-gen \
---verification-key-file ${ROLE}.vkey \
---signing-key-file ${ROLE}.skey
+cardano-cli conway key generate-mnemonic \
+--size 24 > mnemonic
+
+cardano-cli conway key derive-from-mnemonic \
+--payment-key-with-number 0 \
+--account-number 0 \
+--mnemonic-from-file mnemonic \
+--signing-key-file ${NAME}-${ROLE}.xskey
 ```
 
-#### 2. Convert these keys into their OpenSSL equivalent format.
+#### 2 Create the secret key variable
 ```bash
-cat ${ROLE}.skey | jq -r ".cborHex" | cut -c 5- | (echo -n "302e020100300506032b657004220420" && cat) | xxd -r -p | base64 \
-| (echo "-----BEGIN PRIVATE KEY-----" && cat) | (cat && echo "-----END PRIVATE KEY-----") > ${ROLE}-priv.pem
+secret_key=$(jq -r '.cborHex[4:68]' ${NAME}-${ROLE}.xskey)
 ```
 
-#### 3. Create your certificate signing request
+#### 3 Use your variable to create normal shelley signing key
 ```bash
-openssl req -new -key ${ROLE}-priv.pem -out ${NAME}-${ROLE}.csr
+jq -n --arg cborHex "5820$secret_key" \
+'{"type":"PaymentSigningKeyShelley_ed25519","description":"Payment Signing Key","cborHex":$cborHex}' > ${NAME}-${ROLE}.skey
 ```
 
-#### 4. After completing all prompts, check the CSR file content before sending it to the Head of Security.
+#### 4. Convert that key into their OpenSSL equivalent format.
+```bash
+cat ${NAME}-${ROLE}.skey | jq -r ".cborHex" | cut -c 5- | (echo -n "302e020100300506032b657004220420" && cat) | xxd -r -p | base64 \
+| (echo "-----BEGIN PRIVATE KEY-----" && cat) | (cat && echo "-----END PRIVATE KEY-----") > ${NAME}-${ROLE}-priv.pem
+```
+
+#### 5. Create your certificate signing request
+```bash
+openssl req -new -key ${NAME}-${ROLE}-priv.pem -out ${NAME}-${ROLE}.csr
+```
+
+#### 6. After completing all prompts, check the CSR file content before sending it to the Head of Security.
 ```bash
 openssl req -in ${NAME}-${ROLE}.csr -text -noout
 ```
