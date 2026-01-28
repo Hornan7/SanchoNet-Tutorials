@@ -1,4 +1,6 @@
-# To Get all SanchoNet Genesis Files
+# SanchoNet is now running on node Version 10.6.1
+
+## To Get all SanchoNet Genesis Files
 ```bash
 curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/byron-genesis.json
 curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/shelley-genesis.json
@@ -7,4 +9,6 @@ curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/he
 curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/config.json
 curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/topology.json
 curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/guardrails-script.plutus
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/dijkstra-genesis.json
+curl -O -J https://raw.githubusercontent.com/Hornan7/SanchoNet-Tutorials/refs/heads/main/genesis/peer-snapshot.json
 ```
